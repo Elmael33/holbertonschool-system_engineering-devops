@@ -1,0 +1,47 @@
+When a user wants to visit www.foobar.com, they type the domain name into their browser. 
+The browser then sends a DNS request to resolve the domain name into an IP address. 
+The DNS server responds with the IP address of the server that is hosting the website.
+
+After that, the browser sends an HTTP/HTTPS request to the server. In this case, the server 
+has Nginx running as the web server. Nginx listens for incoming requests and determines 
+whether the request is for static content like HTML, images, or CSS files, or if it requires dynamic content.
+
+If the request is for static content, Nginx serves it directly. But if the request is for dynamic 
+content, such as processing user data, Nginx forwards the request to the application server. 
+The application server is where the business logic of the website is executed.
+
+The application server communicates with the database to retrieve or store data needed for the website. 
+For example, when a user logs in, the application server will query the database to check the credentials 
+and return the appropriate response to the user.
+
+The MySQL database stores all the dynamic data needed for the website, such as user profiles, posts, or product 
+details. The database is set up as a Primary-Replica configuration, where the Primary node (Master) handles all 
+write requests while the Replica node (Slave) handles read requests.
+
+This setup allows for better performance since the application server can query the Replica node for data instead 
+of overloading the Primary node with read queries. This also adds some redundancy in case the Primary node goes down, 
+as the Replica node can be promoted to Primary.
+
+The load balancer is added to this setup to manage traffic between servers and increase the availability of the website. 
+It distributes incoming requests across multiple servers based on a distribution algorithm, such as round-robin or 
+least connections. This helps balance the load and ensures no server becomes overwhelmed.
+
+In the event of server failure, the load balancer can reroute traffic to another server, ensuring the website remains 
+accessible. The load balancer can be set up in an Active-Active configuration, meaning all servers are active and capable 
+of handling traffic simultaneously. Alternatively, an Active-Passive setup could be used, where only one server is actively 
+handling requests, and the other becomes active only if the primary server fails.
+
+However, this setup has potential Single Points of Failure (SPOF). For example, if the load balancer fails, the entire website 
+becomes unavailable, and if the application server or database crashes, the website cannot function properly.
+
+Security is another concern in this infrastructure. Without a firewall or HTTPS enabled, the servers are vulnerable to attacks 
+like DDoS, man-in-the-middle attacks, or data breaches. Implementing a firewall and securing the connection with HTTPS can 
+mitigate some of these risks.
+
+Monitoring is also essential for maintaining the infrastructure. Without proper monitoring, issues like server overloads, 
+database performance problems, or security vulnerabilities could go undetected. Adding a monitoring tool can help track 
+server health, traffic, and other important metrics.
+
+In summary, this three-server setup improves scalability, fault tolerance, and performance by using load balancing, application 
+server separation, and a Primary-Replica database configuration. However, to address security and reliability issues, measures 
+like HTTPS, firewalls, and monitoring need to be implemented.

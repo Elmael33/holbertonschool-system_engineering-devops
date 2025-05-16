@@ -1,0 +1,41 @@
+In this infrastructure design, we are tasked with setting up a scalable, distributed web infrastructure 
+that hosts a website, with a focus on separating different components across multiple servers.
+
+The user enters www.foobar.com into their browser. The browser sends a DNS request to resolve the domain 
+into an IP address. The DNS server responds with the IP address of the infrastructure, pointing to the load 
+balancer.
+
+The load balancer (HAProxy) is responsible for distributing incoming traffic across multiple web servers. 
+This ensures that no single server is overwhelmed with traffic, improving the reliability and scalability 
+of the infrastructure. In this case, we configure HAProxy as a cluster, allowing multiple load balancers to 
+work together for greater fault tolerance and load distribution. The load balancer uses a distribution algorithm 
+such as round-robin to balance the incoming requests.
+
+Next, the web server is responsible for handling static content like HTML, images, CSS, and JavaScript. 
+The web server also forwards requests for dynamic content to the application server. By separating these 
+components onto different servers, we improve the performance and scalability of each one. The application 
+server handles the business logic of the website, processes user requests, and may interact with the database 
+to retrieve or store data.
+
+The database, in this case MySQL, stores the dynamic data required by the website. It is also hosted on its 
+own server to further separate concerns and improve performance. By splitting the database from the application 
+server, we prevent bottlenecks and allow the database to be optimized for its specific use case.
+
+The infrastructure now consists of:
+- Load Balancer (HAProxy): Distributes incoming traffic across multiple web servers.
+- Web Servers: Serve static content and pass dynamic requests to the application server.
+- Application Servers: Handle business logic and interact with the database.
+- Database Server: Stores dynamic data for the website.
+
+Issues with this infrastructure:
+- The load balancer could become a bottleneck or single point of failure (SPOF) if it isn’t properly 
+    scaled or configured for high availability.
+- Without proper monitoring and scaling of web servers, some may become overwhelmed with too much 
+    traffic, leading to downtime or slower responses.
+- Having the application and database servers on separate machines is good for performance, but careful 
+    management is required to avoid any potential issues with network latency or communication delays 
+    between them.
+
+Overall, this design aims to scale the infrastructure by separating the web server, application server, 
+and database across different machines, improving performance and scalability. Using a load balancer ensures 
+traffic is distributed evenly, and the clustering of load balancers adds fault tolerance to prevent downtime.

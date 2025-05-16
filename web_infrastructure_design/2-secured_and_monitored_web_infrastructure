@@ -1,0 +1,61 @@
+To design a three-server web infrastructure for hosting www.foobar.com with security, encrypted traffic, 
+and monitoring, the goal is to have multiple components working together for robustness and reliability.
+
+Here’s the breakdown:
+
+The user wants to visit www.foobar.com, so they start by typing the domain in their browser. The browser sends a 
+DNS request to resolve www.foobar.com to an IP address. The DNS server returns the IP address for the website’s 
+server, which is part of a larger infrastructure.
+
+When a user connects to the website, the traffic is encrypted with SSL/TLS, so we add an SSL certificate to the 
+infrastructure to enable secure HTTPS connections. SSL is terminated at the load balancer to ensure secure traffic 
+between the user and the web infrastructure.
+
+The load balancer (HAProxy or similar) is responsible for distributing incoming traffic to multiple web servers. 
+This improves performance and prevents any one server from being overloaded. The load balancer uses algorithms like 
+round-robin or least-connections to distribute the requests.
+
+In addition, firewalls are placed at strategic points in the infrastructure to protect the web servers and database 
+from external threats. These firewalls help block unauthorized access and ensure that only legitimate traffic reaches 
+the internal components. Three firewalls are used: one in front of the load balancer, one between the load balancer and 
+the application servers, and one between the application servers and the database.
+
+There are three monitoring clients deployed in this infrastructure. These are data collectors used to gather system 
+metrics for analysis, such as CPU usage, memory, and network traffic. The data is sent to monitoring services like 
+Sumologic, Datadog, or Prometheus. Monitoring tools help track the performance of the infrastructure, alert 
+administrators about any potential issues, and provide insights into server health. This monitoring service can collect 
+data by querying the systems at regular intervals, checking logs, and analyzing metrics.
+
+The goal is to monitor web server performance, including things like Queries Per Second (QPS). To monitor QPS, you 
+need to collect request data from the web servers. The monitoring tool can collect logs or metrics from the web server, 
+such as the number of incoming requests per second. Setting up monitoring agents on the web servers can help gather 
+this data for analysis.
+
+The infrastructure has the following components:
+
+1. Web Server (Nginx): The server that serves static content (HTML, CSS, images) and passes dynamic content 
+requests to the application server.
+2. Application Server: Handles the application logic and interacts with the MySQL database to process requests.
+3. Database Server (MySQL): Stores the data for the website. In this case, there’s a single database for simplicity, 
+but it could be expanded with replication for scalability and reliability.
+4. Load Balancer: Distributes incoming traffic across multiple web servers to prevent overload and improve redundancy.
+5. Firewalls: Protect each tier of the infrastructure by controlling the traffic allowed in and out of each component. 
+6. SSL Certificate: Ensures that all traffic between the users and the infrastructure is encrypted, preventing eavesdropping 
+and man-in-the-middle attacks.
+7. Monitoring Clients: Collect and report metrics and logs to monitoring services, which help identify performance issues, 
+server health, and any potential problems.
+
+Issues with the infrastructure:
+- Terminating SSL at the load balancer is a potential issue because the load balancer now has access to decrypted 
+traffic, which could be a security risk if the load balancer is compromised. To mitigate this, end-to-end encryption 
+between the load balancer and application server should be considered.
+- Having a single MySQL server for writes is an issue because if that server goes down, the entire database is 
+unavailable. For redundancy, database replication (Primary-Replica setup) should be used, where writes go to the 
+Primary node, and reads can be served from Replica nodes.
+- Having servers with all components (web server, application server, and database) on the same machine is 
+problematic because if one component fails, it could bring down the entire server. Distributing these components across 
+multiple servers helps prevent a single point of failure.
+
+In summary, this infrastructure offers a robust setup that balances security (with SSL and firewalls), scalability 
+(with load balancing), and observability (with monitoring). However, careful consideration of SSL termination, 
+database availability, and the distribution of services is necessary for ensuring reliability and performance.
