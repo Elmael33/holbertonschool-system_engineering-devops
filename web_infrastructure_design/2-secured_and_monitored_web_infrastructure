@@ -1,61 +1,105 @@
-To design a three-server web infrastructure for hosting www.foobar.com with security, encrypted traffic, 
-and monitoring, the goal is to have multiple components working together for robustness and reliability.
+# Secured and Monitored Web Infrastructure
 
-Here’s the breakdown:
+## Overview
 
-The user wants to visit www.foobar.com, so they start by typing the domain in their browser. The browser sends a 
-DNS request to resolve www.foobar.com to an IP address. The DNS server returns the IP address for the website’s 
-server, which is part of a larger infrastructure.
+This infrastructure builds on the distributed setup by introducing essential security and observability tools: **firewalls**, **SSL encryption**, and **monitoring agents**. These additions protect the system and allow administrators to detect and fix issues proactively.
 
-When a user connects to the website, the traffic is encrypted with SSL/TLS, so we add an SSL certificate to the 
-infrastructure to enable secure HTTPS connections. SSL is terminated at the load balancer to ensure secure traffic 
-between the user and the web infrastructure.
+---
 
-The load balancer (HAProxy or similar) is responsible for distributing incoming traffic to multiple web servers. 
-This improves performance and prevents any one server from being overloaded. The load balancer uses algorithms like 
-round-robin or least-connections to distribute the requests.
+## User Journey
 
-In addition, firewalls are placed at strategic points in the infrastructure to protect the web servers and database 
-from external threats. These firewalls help block unauthorized access and ensure that only legitimate traffic reaches 
-the internal components. Three firewalls are used: one in front of the load balancer, one between the load balancer and 
-the application servers, and one between the application servers and the database.
+1. A user types `www.foobar.com` into their browser.
+2. DNS resolves the name to the IP of the **load balancer**.
+3. The user’s request is made over **HTTPS**.
+4. The load balancer has an **SSL certificate** and decrypts the request.
+5. The request is passed to one of the web servers for processing.
+6. The application server handles logic and database access.
+7. The response is returned securely to the user.
 
-There are three monitoring clients deployed in this infrastructure. These are data collectors used to gather system 
-metrics for analysis, such as CPU usage, memory, and network traffic. The data is sent to monitoring services like 
-Sumologic, Datadog, or Prometheus. Monitoring tools help track the performance of the infrastructure, alert 
-administrators about any potential issues, and provide insights into server health. This monitoring service can collect 
-data by querying the systems at regular intervals, checking logs, and analyzing metrics.
+---
 
-The goal is to monitor web server performance, including things like Queries Per Second (QPS). To monitor QPS, you 
-need to collect request data from the web servers. The monitoring tool can collect logs or metrics from the web server, 
-such as the number of incoming requests per second. Setting up monitoring agents on the web servers can help gather 
-this data for analysis.
+## Infrastructure Components
 
-The infrastructure has the following components:
+### Load Balancer
 
-1. Web Server (Nginx): The server that serves static content (HTML, CSS, images) and passes dynamic content 
-requests to the application server.
-2. Application Server: Handles the application logic and interacts with the MySQL database to process requests.
-3. Database Server (MySQL): Stores the data for the website. In this case, there’s a single database for simplicity, 
-but it could be expanded with replication for scalability and reliability.
-4. Load Balancer: Distributes incoming traffic across multiple web servers to prevent overload and improve redundancy.
-5. Firewalls: Protect each tier of the infrastructure by controlling the traffic allowed in and out of each component. 
-6. SSL Certificate: Ensures that all traffic between the users and the infrastructure is encrypted, preventing eavesdropping 
-and man-in-the-middle attacks.
-7. Monitoring Clients: Collect and report metrics and logs to monitoring services, which help identify performance issues, 
-server health, and any potential problems.
+* **SSL Termination**: Handles HTTPS and decrypts traffic.
+* Uses algorithms like Round Robin or Least Connections.
 
-Issues with the infrastructure:
-- Terminating SSL at the load balancer is a potential issue because the load balancer now has access to decrypted 
-traffic, which could be a security risk if the load balancer is compromised. To mitigate this, end-to-end encryption 
-between the load balancer and application server should be considered.
-- Having a single MySQL server for writes is an issue because if that server goes down, the entire database is 
-unavailable. For redundancy, database replication (Primary-Replica setup) should be used, where writes go to the 
-Primary node, and reads can be served from Replica nodes.
-- Having servers with all components (web server, application server, and database) on the same machine is 
-problematic because if one component fails, it could bring down the entire server. Distributing these components across 
-multiple servers helps prevent a single point of failure.
+### Web/Application Servers
 
-In summary, this infrastructure offers a robust setup that balances security (with SSL and firewalls), scalability 
-(with load balancing), and observability (with monitoring). However, careful consideration of SSL termination, 
-database availability, and the distribution of services is necessary for ensuring reliability and performance.
+* Serve static content (Nginx) and process backend logic.
+* Connected to monitoring agents and protected by firewalls.
+
+### MySQL Database
+
+* Primary-Replica setup (not explicitly required but assumed for scaling).
+
+### Firewalls (3 total)
+
+* 1 before the Load Balancer
+* 1 between Load Balancer and App Servers
+* 1 between App Servers and DB
+
+### SSL Certificate
+
+* Encrypts traffic between the user and the load balancer.
+* Prevents eavesdropping and man-in-the-middle attacks.
+
+### Monitoring Clients
+
+* Installed on all servers.
+* Collect metrics (CPU, memory, QPS).
+* Tools: Sumologic, Datadog, Prometheus, etc.
+
+---
+
+## Diagram
+
+```
+User <--HTTPS--> Load Balancer (SSL Termination)
+                |    ^
+         [Firewall #1]
+                |
+        -------------------
+        |                 |
+ Web/App Server 1    Web/App Server 2
+   |       ^              |      ^
+ [FW#2] [Mon]          [FW#2] [Mon]
+   |                     |
+  -----------------------------
+               |
+          [Firewall #3]
+               |
+           MySQL DB
+            [Mon]
+```
+
+---
+
+## Why Add These Components?
+
+* **Firewalls**: Control traffic flow and protect each layer.
+* **SSL**: Encrypts traffic to protect user data.
+* **Monitoring**: Detects performance issues and alerts on problems.
+
+---
+
+## Monitoring QPS (Queries Per Second)
+
+* Use monitoring agents to collect logs or metrics from the web server.
+* Track the number of HTTP requests per second.
+* Use tools like Prometheus + Grafana to visualize this.
+
+---
+
+## Issues with This Architecture
+
+* **SSL Termination at LB**: Traffic between LB and app servers is unencrypted unless re-encrypted.
+* **Single Write DB**: Only one MySQL node handles writes. If it goes down, writes are blocked.
+* **Monolithic Servers**: Web, app, and DB all on same nodes can cause cascading failures.
+
+---
+
+## Conclusion
+
+Security and monitoring are critical in any production infrastructure. This setup improves visibility and protection, but introduces new risks (e.g., LB SSL termination, single DB write point). Better segmentation and redundancy can improve resilience further.

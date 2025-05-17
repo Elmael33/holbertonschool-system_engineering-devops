@@ -1,40 +1,93 @@
-When a user wants to visit www.foobar.com, they type the domain name into their browser. 
-The browser sends a DNS request to translate www.foobar.com into an IP address. The DNS 
-server responds with the IP address of the load balancer. The browser then sends an HTTP/HTTPS 
-request to the load balancer, which is configured with HAproxy.
+# Distributed Web Infrastructure - Three Servers
 
-The load balancer (HAproxy) is responsible for distributing incoming requests across the available servers. 
-It ensures that traffic is balanced between servers and prevents any one server from becoming overloaded. 
-In this case, it can be configured with a round-robin or least connections distribution algorithm, 
-where each new request is forwarded to the server with the least number of active connections, or to the 
-next server in the rotation. This helps ensure that no single server is overwhelmed with requests, 
-improving the overall performance and availability of the website.
+## Overview
 
-The load balancer uses an Active-Active setup, meaning all the web servers are active and can handle requests 
-simultaneously. In an Active-Passive setup, one server would be idle (passive) until the active server fails. 
-The Active-Active setup allows for better resource utilization and redundancy, ensuring that traffic is evenly 
-distributed across multiple active servers.
+This infrastructure improves upon a simple single-server setup by distributing responsibilities across multiple servers. It introduces a load balancer and separates the application and database components for better performance and fault tolerance.
 
-There are two servers in this setup: the web server (Nginx) and the application server. The Nginx server listens 
-for incoming HTTP/HTTPS requests and serves static content directly. For dynamic content, Nginx forwards the request 
-to the application server, which runs the business logic of the website.
+---
 
-The application server processes requests and may interact with the database (MySQL) to retrieve or store data. 
-The application server does not store any data locally but relies on the database to persist data, such as user 
-profiles or product information.
+## User Journey
 
-The database is set up in a Primary-Replica (Master-Slave) configuration. The Primary node (Master) handles write 
-requests (insertions, updates), while the Replica node (Slave) handles read requests (fetching data). The application 
-server queries the Replica for data retrieval, ensuring that the Primary node is not overwhelmed with read queries, 
-which improves performance.
+1. The user types `www.foobar.com` into their browser.
+2. A DNS query is made, resolving `www.foobar.com` to an IP address.
+3. The DNS returns an **A record** pointing to the public IP of the **load balancer**.
+4. The browser sends an HTTP request to the load balancer.
+5. The load balancer forwards the request to one of the backend web servers.
+6. The web server serves static content or forwards the request to the application server.
+7. The application server processes the request and interacts with the **Primary (Master)** or **Replica (Slave)** database node as needed.
+8. The response is returned to the user through the same path.
 
-This infrastructure improves the scalability and availability of the website. If one server fails, the load balancer 
-can reroute traffic to the remaining active servers. However, this setup still has some potential SPOF (Single Point 
-of Failure) issues. For example:
-- If the load balancer fails, traffic cannot be routed to any of the web servers.
-- There is no firewall or HTTPS configured in this infrastructure, which leaves the servers vulnerable to attacks 
-  and data leaks.
-- No monitoring system is in place to track performance or detect failures.
+---
 
-The main advantages of this setup are better traffic distribution, increased availability, and redundancy. 
-However, potential SPOFs remain, and security and monitoring need to be addressed for better resilience.
+## Components Used
+
+### 1. Load Balancer (HAProxy)
+
+* Accepts all incoming HTTP requests.
+* Distributes traffic using algorithms like **Round Robin** or **Least Connections**.
+* Improves performance and availability.
+
+### 2. Web & Application Servers (2 Servers)
+
+Each server includes:
+
+* **Nginx (Web Server)**: Serves static content and forwards dynamic requests.
+* **Application Server**: Processes logic and communicates with the database.
+* **Application Codebase**: The actual files and backend logic.
+
+### 3. MySQL Database (Primary-Replica Cluster)
+
+* **Primary (Master)** node: Handles write operations.
+* **Replica (Slave)** node: Handles read operations.
+* Provides data redundancy and load sharing.
+
+---
+
+## DNS Configuration
+
+* `www.foobar.com` uses an **A record** that maps to the public IP of the **load balancer**.
+
+---
+
+## Load Balancing Algorithm
+
+* **Round Robin**: Requests are distributed equally in turn to each server.
+* **Least Connections**: Sends requests to the server with the fewest active connections.
+
+---
+
+## Setup Type
+
+* **Active-Active**: All servers handle traffic simultaneously for high availability.
+* **Active-Passive** (alternative): One server is standby until failure of the active one.
+
+---
+
+## Diagram
+
+```
+User --> DNS --> Load Balancer (HAProxy)
+                            |
+            -----------------------------------
+            |                                 |
+     Web Server 1                      Web Server 2
+     (Nginx + App + DB Client)         (Nginx + App + DB Client)
+            |                                 |
+       Reads/Writes                     Reads
+            |                                 |
+     Primary DB <---------------------> Replica DB
+```
+
+---
+
+## Issues in this Architecture
+
+* **SPOF (Single Point of Failure)**: The load balancer itself.
+* **Security**: No firewalls, no HTTPS — system is vulnerable.
+* **Monitoring**: No visibility into traffic, performance, or errors.
+
+---
+
+## Conclusion
+
+This infrastructure significantly improves availability, scalability, and redundancy. However, it still contains weaknesses that need to be addressed: mainly the load balancer SPOF, lack of secure connections, and absence of monitoring.

@@ -1,47 +1,103 @@
-When a user wants to visit www.foobar.com, they type the domain name into their browser. 
-The browser then sends a DNS request to resolve the domain name into an IP address. 
-The DNS server responds with the IP address of the server that is hosting the website.
+# Simple Web Infrastructure - One Server
 
-After that, the browser sends an HTTP/HTTPS request to the server. In this case, the server 
-has Nginx running as the web server. Nginx listens for incoming requests and determines 
-whether the request is for static content like HTML, images, or CSS files, or if it requires dynamic content.
+## Overview
 
-If the request is for static content, Nginx serves it directly. But if the request is for dynamic 
-content, such as processing user data, Nginx forwards the request to the application server. 
-The application server is where the business logic of the website is executed.
+This infrastructure is designed to host a website accessible via **[www.foobar.com](http://www.foobar.com)**. It uses a **single server** that combines all necessary components to serve a fully functional web application.
 
-The application server communicates with the database to retrieve or store data needed for the website. 
-For example, when a user logs in, the application server will query the database to check the credentials 
-and return the appropriate response to the user.
+---
 
-The MySQL database stores all the dynamic data needed for the website, such as user profiles, posts, or product 
-details. The database is set up as a Primary-Replica configuration, where the Primary node (Master) handles all 
-write requests while the Replica node (Slave) handles read requests.
+## User Journey
 
-This setup allows for better performance since the application server can query the Replica node for data instead 
-of overloading the Primary node with read queries. This also adds some redundancy in case the Primary node goes down, 
-as the Replica node can be promoted to Primary.
+1. A user opens their browser and types `www.foobar.com`.
+2. The browser sends a DNS query to resolve the domain name.
+3. The DNS server returns the IP address `8.8.8.8` associated with the domain.
+4. The browser initiates an HTTP request to the server at `8.8.8.8`.
+5. The server processes the request using:
 
-The load balancer is added to this setup to manage traffic between servers and increase the availability of the website. 
-It distributes incoming requests across multiple servers based on a distribution algorithm, such as round-robin or 
-least connections. This helps balance the load and ensures no server becomes overwhelmed.
+   * Nginx as the web server
+   * An application server (e.g., PHP-FPM, Node.js)
+   * A MySQL database
+6. The response (HTML, JSON, etc.) is sent back to the user.
 
-In the event of server failure, the load balancer can reroute traffic to another server, ensuring the website remains 
-accessible. The load balancer can be set up in an Active-Active configuration, meaning all servers are active and capable 
-of handling traffic simultaneously. Alternatively, an Active-Passive setup could be used, where only one server is actively 
-handling requests, and the other becomes active only if the primary server fails.
+---
 
-However, this setup has potential Single Points of Failure (SPOF). For example, if the load balancer fails, the entire website 
-becomes unavailable, and if the application server or database crashes, the website cannot function properly.
+## Components Used
 
-Security is another concern in this infrastructure. Without a firewall or HTTPS enabled, the servers are vulnerable to attacks 
-like DDoS, man-in-the-middle attacks, or data breaches. Implementing a firewall and securing the connection with HTTPS can 
-mitigate some of these risks.
+### Domain Name:
 
-Monitoring is also essential for maintaining the infrastructure. Without proper monitoring, issues like server overloads, 
-database performance problems, or security vulnerabilities could go undetected. Adding a monitoring tool can help track 
-server health, traffic, and other important metrics.
+* **foobar.com** has a `www` subdomain configured.
+* The DNS entry for `www.foobar.com` is an **A record** pointing to **8.8.8.8**.
 
-In summary, this three-server setup improves scalability, fault tolerance, and performance by using load balancing, application 
-server separation, and a Primary-Replica database configuration. However, to address security and reliability issues, measures 
-like HTTPS, firewalls, and monitoring need to be implemented.
+### Server @ 8.8.8.8
+
+* **Web Server**: Nginx
+
+  * Listens on port 80
+  * Serves static files (HTML, CSS, JS)
+  * Forwards dynamic requests to the application server
+
+* **Application Server**
+
+  * Handles backend logic (e.g., login, forms)
+  * Processes dynamic requests from Nginx
+
+* **Application Files**
+
+  * The actual code base (e.g., PHP, Python, JavaScript)
+
+* **Database (MySQL)**
+
+  * Stores user data, product info, etc.
+  * Used by the application server for data queries
+
+### Communication
+
+* The server communicates with the user's computer via the **HTTP protocol over TCP/IP**.
+
+---
+
+## Definitions
+
+* **Server**: A physical or virtual machine that runs services and software.
+* **Domain Name**: A human-readable address that maps to an IP address via DNS.
+* **A Record**: A DNS record that maps a domain (e.g., [www.foobar.com](http://www.foobar.com)) to an IP address.
+* **Web Server (Nginx)**: Manages HTTP requests and serves web content.
+* **Application Server**: Executes business logic and interacts with the database.
+* **Database**: Stores and retrieves application data.
+
+---
+
+## Diagram
+
+```
+User Browser
+     |
+     v
+www.foobar.com --> DNS resolves to 8.8.8.8
+     |
+     v
++-------------------------------+
+|         Single Server         |
+|  IP: 8.8.8.8                  |
+|                               |
+|  [ Nginx (Web Server) ]       |
+|           |                   |
+|  [ Application Server ]       |
+|           |                   |
+|     [ MySQL Database ]        |
++-------------------------------+
+```
+
+---
+
+## Limitations of This Architecture
+
+* **SPOF (Single Point of Failure)**: If the server goes down, the entire site is unavailable.
+* **Downtime During Maintenance**: Restarting services (e.g., for updates) causes site downtime.
+* **No Scalability**: The server cannot handle high traffic alone. There's no way to scale horizontally.
+
+---
+
+## Conclusion
+
+This infrastructure is simple and easy to deploy, ideal for small-scale or early-stage applications. However, it lacks redundancy, scalability, and high availability. It serves as a foundational example for more advanced distributed systems.
